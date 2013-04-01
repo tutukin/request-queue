@@ -1,0 +1,40 @@
+{
+  "name": "request-queue",
+  "description": "put HTTP requests in a tasks-queue to execute them sequentially and not too often",
+  "version": "0.0.1",
+  "homepage": "",
+  "author": {
+    "name": "Andrei V. Toutoukine",
+    "email": "tut@isuct.ru"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tutukin/request-queue.git"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "/blob/master/LICENSE-MIT"
+    }
+  ],
+  "main": "lib/RequestQueue",
+  "engines": {
+    "node": ">= 0.6.0"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "dependencies" : {
+  	"tasks-queue":"0.0.x"
+  },
+  "devDependencies": {
+    "grunt-contrib-jshint": "~0.1.1",
+    "grunt-simple-mocha": "~0.3.2",
+    "grunt-contrib-watch": "~0.2.0",
+    "grunt": "~0.4.0",
+    "expect.js": "0.2.x",
+    "sinon":"1.6.0",
+    "mock":"0.1.x"
+  },
+  "keywords": []
+}
