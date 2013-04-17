@@ -9,11 +9,16 @@ describe('RequestQueue', function() {
 	var RequestQueue, q;
 	
 	beforeEach(function(done) {
+		var Converter = sinon.spy(),
+			converted = {toString:sinon.spy()};
+		Converter.prototype.convert = sinon.stub().returns(converted);
+		
 		RequestQueue	= rewire(__dirname + '/../lib/RequestQueue');
 		
 		RequestQueue.__set__("request",sinon.spy());
 		RequestQueue.__set__("jsdom",{env:sinon.spy()});
 		RequestQueue.__set__("Buffer",sinon.spy());
+		RequestQueue.__set__("Iconv",Converter);
 		
 		RequestQueue.prototype.on = sinon.spy();
 		RequestQueue.prototype.emit = sinon.spy();
@@ -21,8 +26,11 @@ describe('RequestQueue', function() {
 		q = new RequestQueue();
 		q._debug(true);
 		
+		q._request = sinon.spy();
+		
 		done();
 	});
+	
 	
 	
 	describe('constructor', function() {
@@ -51,6 +59,8 @@ describe('RequestQueue', function() {
 			done();
 		});
 	});
+	
+	
 	
 	describe('instance', function() {
 		it('should be an instance of RequestQueue', function(done) {
@@ -176,6 +186,8 @@ describe('RequestQueue', function() {
 			done();
 		});
 		
+		
+		
 		describe('<data> for ::request task', function() {
 			var data;
 			
@@ -197,7 +209,8 @@ describe('RequestQueue', function() {
 		});
 		
 	});
-
+	
+	
 	
 	describe('#onrequest(jinn,data)', function() {
 		var jinn,data;
@@ -215,41 +228,46 @@ describe('RequestQueue', function() {
 			done();
 		});
 		
-		it('should call #_request(data.requestOptions,callback)', function(done) {
-			q._request = sinon.spy();
-			
+		it('should call #_request(options,callback)', function(done) {			
 			q.onrequest(jinn,data);
 			
 			expect(q._request.calledOnce).to.equal(true);
-			expect(q._request.firstCall.args[0]).to.equal(data.requestOptions);
+			expect(q._request.firstCall.args[0]).to.be.an(Object);
 			expect(q._request.firstCall.args[1]).to.be.a('function');
 			
 			done();
 		});
 		
-		it('should override the "encoding" option with "binary"', function(done) {
-			q._request = sinon.spy();
-			
-			data.requestOptions.encoding = "windows-1251";
-			
+		it('should clone data.requestProperties', function(done) {
+			var options;
 			q.onrequest(jinn,data);
+			options = q._request.firstCall.args[0];
 			
-			expect(data.requestOptions.encoding).to.be("binary");
+			expect(options).to.not.equal(data.requestOptions);
 			
 			done();
 		});
+		
+		it('should set the "encoding" option with "binary"', function(done) {
+			data.requestOptions.encoding = "windows-1251";
+			q.onrequest(jinn,data);
+			
+			expect(q._request.firstCall.args[0].encoding).to.equal("binary");
+			
+			done();
+		});
+		
+		
 		
 		describe('<callback>', function() {
 			var callback,error,response,body;
 			
 			beforeEach(function(done) {
-				q._request = sinon.spy();
-				data.requestOptions.encoding = 'windows-1251';
 				q.onrequest(jinn,data);
 				callback = q._request.firstCall.args[1];
 				
 				error = {};
-				response = {};
+				response = { headers : { }};
 				body = {};
 				
 				done();
@@ -267,7 +285,30 @@ describe('RequestQueue', function() {
 				
 				done();
 			});
+						
+			it('should use charset from response headers if no "encoding" option was specified', function(done) {
+				var encoding = "koi8-r",
+					contentType = "text/html; charset="+encoding,
+					I = RequestQueue.__get__("Iconv"),
+					response = {
+						headers : {
+							"content-type" : contentType
+						}
+					};
+				
+				callback(error, response, body);
+				
+				expect( I.firstCall.args[0]).to.equal(encoding);
+				
+				done();
+			});
 			
+			it('should convert a buffer using converter', function(done) {
+				var I = RequestQueue.__get__("Iconv");
+				callback(error, response, body);
+				expect(I.prototype.convert.calledOnce).to.equal(true);
+				done();
+			});
 			
 			it('should emit ::response event, passing jinn, error, response and body to the listeners', function(done) {
 				var call;
@@ -287,6 +328,35 @@ describe('RequestQueue', function() {
 				done();
 			});
 			
+			
+			
+			describe('<callback> override encoding', function() {
+				var callback,error,response,body, encoding;
+				
+				beforeEach(function(done) {
+					encoding = "windows-1251";
+					data.requestOptions.encoding = encoding;
+					
+					error = {};
+					response = { headers : { "content-type" : "text/html; charset=UTF-8" } };
+					body = {};
+					
+					q._request = sinon.stub().callsArgWith(1,error,response,body);
+					
+					q.onrequest(jinn,data);
+					
+					done();
+				});
+				
+				it('should create a converter that transforms from encoding to utf-8', function(done) {
+					var I = RequestQueue.__get__("Iconv");
+					
+					expect( I.calledOnce ).to.equal(true);
+					expect( I.firstCall.args[0] ).to.equal(encoding);
+					expect( I.firstCall.args[1] ).to.equal("utf8");
+					done();
+				});
+			});
 		});
 	});
 	
