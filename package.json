@@ -1,7 +1,7 @@
 {
   "name": "request-queue",
-  "description": "put HTTP requests in a tasks-queue to execute them sequentially and not too often",
-  "version": "0.0.1",
+  "description": "put HTTP requests in a tasks-queue to execute them sequentially but not too often",
+  "version": "0.0.2",
   "homepage": "",
   "author": {
     "name": "Andrei V. Toutoukine",
@@ -25,15 +25,17 @@
     "test": "grunt test"
   },
   "dependencies" : {
-  	"tasks-queue":"0.0.x"
+  	"tasks-queue": "0.0.x",
+  	"jsdom":"0.5.x",
+  	"request":"2.16.x"
   },
   "devDependencies": {
-    "grunt-contrib-jshint": "~0.1.1",
-    "grunt-simple-mocha": "~0.3.2",
-    "grunt-contrib-watch": "~0.2.0",
-    "grunt": "~0.4.0",
+    "grunt-contrib-jshint": "0.1.x",
+    "grunt-simple-mocha": "0.3.x",
+    "grunt-contrib-watch": "0.2.x",
+    "grunt": "0.4.x",
     "expect.js": "0.2.x",
-    "sinon":"1.6.0",
+    "sinon":"1.6.x",
     "mock":"0.1.x"
   },
   "keywords": []

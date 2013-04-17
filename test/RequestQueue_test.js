@@ -6,7 +6,8 @@ var	expect			= require('expect.js'),
 	TasksQueue		= require('tasks-queue'),
 	mocks			= {
 		request	: sinon.spy(),
-		jsdom	: { env : sinon.spy() }
+		jsdom	: { env : sinon.spy() },
+		buffer	: sinon.spy()
 	},
 	RequestQueue	= mock(__dirname + '/../lib/RequestQueue', mocks);
 
@@ -207,7 +208,7 @@ describe('RequestQueue', function() {
 		beforeEach(function(done) {
 			jinn = {};
 			data = {
-					requestOptions : {}
+					requestOptions : { }
 			};
 			done();
 		});
@@ -229,6 +230,18 @@ describe('RequestQueue', function() {
 			done();
 		});
 		
+		it('should override the "encoding" option with "binary"', function(done) {
+			q._request = sinon.spy();
+			
+			data.requestOptions.encoding = "windows-1251";
+			
+			q.onrequest(jinn,data);
+			
+			expect(data.requestOptions.encoding).to.be("binary");
+			
+			done();
+		});
+		
 		describe('<callback>', function() {
 			var callback,error,response,body;
 			
@@ -243,6 +256,14 @@ describe('RequestQueue', function() {
 				
 				done();
 			});
+			
+			
+			it('should construct a buffer from a body'/*, function(done) {
+				callback(error,response,body);
+				expect(mocks.buffer.calledOnce).to.equal(true);
+				done();
+			}*/);
+			
 			
 			it('should emit ::response event, passing jinn, error, response and body to the listeners', function(done) {
 				var call;
