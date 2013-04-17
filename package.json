@@ -36,7 +36,7 @@
     "grunt": "0.4.x",
     "expect.js": "0.2.x",
     "sinon":"1.6.x",
-    "mock":"0.1.x"
+    "rewire":"1.1.x"
   },
   "keywords": []
 }

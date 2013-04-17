@@ -2,21 +2,18 @@
 
 var	expect			= require('expect.js'),
 	sinon			= require('sinon'),
-	mock			= require('mock'),
-	TasksQueue		= require('tasks-queue'),
-	mocks			= {
-		request	: sinon.spy(),
-		jsdom	: { env : sinon.spy() },
-		buffer	: sinon.spy()
-	},
-	RequestQueue	= mock(__dirname + '/../lib/RequestQueue', mocks);
+	rewire			= require('rewire'),
+	TasksQueue		= require('tasks-queue');
 
 describe('RequestQueue', function() {
-	var q;
+	var RequestQueue, q;
 	
 	beforeEach(function(done) {
-		mocks.request.reset();
-		mocks.jsdom.env.reset();
+		RequestQueue	= rewire(__dirname + '/../lib/RequestQueue');
+		
+		RequestQueue.__set__("request",sinon.spy());
+		RequestQueue.__set__("jsdom",{env:sinon.spy()});
+		RequestQueue.__set__("Buffer",sinon.spy());
 		
 		RequestQueue.prototype.on = sinon.spy();
 		RequestQueue.prototype.emit = sinon.spy();
@@ -247,6 +244,7 @@ describe('RequestQueue', function() {
 			
 			beforeEach(function(done) {
 				q._request = sinon.spy();
+				data.requestOptions.encoding = 'windows-1251';
 				q.onrequest(jinn,data);
 				callback = q._request.firstCall.args[1];
 				
@@ -258,11 +256,17 @@ describe('RequestQueue', function() {
 			});
 			
 			
-			it('should construct a buffer from a body'/*, function(done) {
-				callback(error,response,body);
-				expect(mocks.buffer.calledOnce).to.equal(true);
+			it('should construct a buffer from a body', function(done) {
+				var B = RequestQueue.__get__("Buffer");
+				
+				callback(error, response, body);
+				
+				expect( B.calledOnce ).to.equal(true);
+				expect( B.firstCall.args[0] ).to.equal(body);
+				expect( B.firstCall.args[1] ).to.equal("binary");
+				
 				done();
-			}*/);
+			});
 			
 			
 			it('should emit ::response event, passing jinn, error, response and body to the listeners', function(done) {
@@ -278,7 +282,7 @@ describe('RequestQueue', function() {
 				expect( call.args[1] ).to.equal(jinn);
 				expect( call.args[2] ).to.equal(error);
 				expect( call.args[3] ).to.equal(response);
-				expect( call.args[4] ).to.equal(body);
+				//expect( call.args[4] ).to.equal(body);
 				
 				done();
 			});
@@ -288,9 +292,10 @@ describe('RequestQueue', function() {
 	
 	
 	describe('#onresponse(jinn,error,response,body)', function() {
-		var jinn,error,response,body;
+		var jinn,error,response,body,env;
 		
 		beforeEach(function(done) {
+			env = RequestQueue.__get__('jsdom').env;
 			jinn = {};
 			error = null;
 			response = {};
@@ -313,7 +318,7 @@ describe('RequestQueue', function() {
 		
 		it('should call jsdom.env()', function(done) {
 			q.onresponse();
-			expect( mocks.jsdom.env.calledOnce ).to.equal(true);
+			expect( env.calledOnce ).to.equal(true);
 			done();
 		});
 		
@@ -322,21 +327,21 @@ describe('RequestQueue', function() {
 			
 			q.onresponse(jinn,null,response,body);
 			
-			expect( mocks.jsdom.env.calledOnce ).to.equal(true);
-			expect( mocks.jsdom.env.firstCall.args[0].html).to.equal(body);
+			expect( env.calledOnce ).to.equal(true);
+			expect( env.firstCall.args[0].html).to.equal(body);
 			
 			done();
 		});
 		
 		it('should pass a default body if none was returned by request()', function(done) {
 			q.onresponse(jinn,null,response,undefined);
-			expect( mocks.jsdom.env.firstCall.args[0].html).to.be.a('string');
+			expect( env.firstCall.args[0].html).to.be.a('string');
 			done();
 		});
 		
 		it('should pass a callback to jsdom.env', function(done) {
 			q.onresponse(jinn,null,response,body);
-			expect( mocks.jsdom.env.firstCall.args[0].done ).to.be.a('function');
+			expect( env.firstCall.args[0].done ).to.be.a('function');
 			done();
 		});
 		
@@ -347,7 +352,7 @@ describe('RequestQueue', function() {
 			q.addScripts(paths);
 			q.onresponse();
 			
-			expect( mocks.jsdom.env.firstCall.args[0].scripts ).to.eql(paths);
+			expect( env.firstCall.args[0].scripts ).to.eql(paths);
 			
 			done();
 		});
@@ -357,7 +362,7 @@ describe('RequestQueue', function() {
 			
 			beforeEach(function(done) {
 				q.onresponse(jinn,null,response,body);
-				callback = mocks.jsdom.env.firstCall.args[0].done;
+				callback = env.firstCall.args[0].done;
 				done();
 			});
 			
@@ -452,12 +457,13 @@ describe('RequestQueue', function() {
 		});
 		it('should call request.defaults, passing the options to it', function(done) {
 			var wrapper = {},
-				options = {};
+				options = {},
+				request = RequestQueue.__get__("request");
 			
-			mocks.request.defaults = sinon.stub().returns(wrapper);
+			request.defaults = sinon.stub().returns(wrapper);
 			q.setRequestDefaults(options);
 			
-			expect( mocks.request.defaults.calledOnce ).to.equal(true);
+			expect( request.defaults.calledOnce ).to.equal(true);
 			expect( q._request ).to.equal(wrapper);
 			done();
 		});
